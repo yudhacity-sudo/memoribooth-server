@@ -134,7 +134,9 @@ router.get('/download/:sessionCode', async (req, res) => {
     const baseUrl = `http://${req.headers.host}`;
     const finalPhoto = photos.find(p => p.filename.startsWith('FINAL_'));
     const rawPhotos  = photos.filter(p => p.filename.startsWith('RAW_'));
-    const motionFile = photos.find(p => p.filename.startsWith('MOTION'));
+    // Prioritaskan MOTION_FINAL (rendered full strip+frame), fallback ke MOTION biasa
+    const motionFile = photos.find(p => p.filename.startsWith('MOTION_FINAL'))
+                    || photos.find(p => p.filename.startsWith('MOTION'));
 
     const finalUrl  = finalPhoto  ? `${baseUrl}/api/photos/${finalPhoto.filename}`  : '';
     const motionUrl = motionFile  ? `${baseUrl}/api/photos/${motionFile.filename}`  : '';
@@ -256,6 +258,50 @@ router.get('/download/:sessionCode', async (req, res) => {
   } catch (e) {
     console.error('[BOOTH] download error:', e.message);
     res.status(500).send('Error: ' + e.message);
+  }
+});
+
+// POST /api/booth/update-motion — update motion video dengan versi rendered (full strip + frame)
+router.post('/update-motion', boothToken, async (req, res) => {
+  try {
+    const { sid, motionDataUrl } = req.body || {};
+    if (!sid || !motionDataUrl || !motionDataUrl.startsWith('data:video')) {
+      return res.status(400).json({ ok: false, error: 'sid dan motionDataUrl wajib diisi' });
+    }
+
+    // Cari session di DB
+    const session = db.prepare('SELECT * FROM sessions WHERE session_code = ?').get(String(sid));
+    if (!session) return res.status(404).json({ ok: false, error: 'Session tidak ditemukan' });
+
+    // Temukan folder session
+    const photos = db.prepare('SELECT * FROM photos WHERE session_id = ? LIMIT 1').all(session.id);
+    if (!photos.length) return res.status(404).json({ ok: false, error: 'Foto session tidak ditemukan' });
+
+    // Dapatkan folder dari filepath foto pertama
+    const firstPhoto = photos[0];
+    const sessionDir = require('path').join(UPLOAD_DIR, require('path').dirname(firstPhoto.filepath));
+
+    // Tulis motion final (rendered full strip + frame)
+    const mime = motionDataUrl.slice(5, motionDataUrl.indexOf(';'));
+    const motionName = mime.includes('mp4') ? 'MOTION_FINAL.mp4' : 'MOTION_FINAL.webm';
+    const motionPath = require('path').join(sessionDir, motionName);
+    writeBase64(motionDataUrl, motionPath);
+
+    // Update atau insert ke DB
+    const existing = db.prepare('SELECT * FROM photos WHERE session_id = ? AND filename = ?').get(session.id, motionName);
+    if (existing) {
+      db.prepare('UPDATE photos SET filesize = ? WHERE id = ?').run(require('fs').statSync(motionPath).size, existing.id);
+    } else {
+      const rel = require('path').relative(UPLOAD_DIR, motionPath);
+      const size = require('fs').statSync(motionPath).size;
+      db.prepare('INSERT INTO photos (session_id, filename, filepath, filesize) VALUES (?, ?, ?, ?)').run(session.id, motionName, rel, size);
+    }
+
+    console.log(`[BOOTH] Motion final updated: ${session.session_code} → ${motionName}`);
+    res.json({ ok: true, motionName });
+  } catch (e) {
+    console.error('[BOOTH] update-motion error:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
