@@ -160,48 +160,48 @@ router.get('/download/:sessionCode', async (req, res) => {
       display:flex;align-items:flex-start;justify-content:center;
     }
     .wrap{max-width:520px;width:100%;margin:0 auto;padding-bottom:40px}
-    .header{text-align:center;padding:32px 20px 24px}
-    .logo{font-size:48px;margin-bottom:8px}
+    .header{text-align:center;padding:28px 20px 20px}
+    .logo{font-size:44px;margin-bottom:6px}
     h1{font-size:24px;font-weight:800;letter-spacing:.5px;
       background:linear-gradient(135deg,#F472B6,#A78BFA,#67E8F9);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:6px}
+    .sub{font-size:13px;color:rgba(255,255,255,.5);margin-top:4px}
     .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-      border-radius:20px;padding:20px;margin-bottom:16px}
-    .card-title{font-size:11px;font-weight:800;letter-spacing:1px;
-      text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:14px}
-    .preview{width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.1);
-      display:block;margin-bottom:14px}
+      border-radius:20px;padding:18px;margin-bottom:14px}
+    .card-title{font-size:10px;font-weight:800;letter-spacing:1.2px;
+      text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px}
+    .preview{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.08);
+      display:block;margin-bottom:12px}
     .btn{
       display:flex;align-items:center;justify-content:center;gap:8px;
       padding:14px 20px;border-radius:14px;text-decoration:none;
-      font-weight:700;font-size:14px;margin-bottom:10px;
+      font-weight:700;font-size:14px;margin-bottom:8px;
       border:1px solid rgba(255,255,255,.15);
       background:rgba(255,255,255,.07);color:white;
-      transition:background .15s;cursor:pointer;
+      transition:background .15s;
     }
     .btn:hover{background:rgba(255,255,255,.14)}
     .btn.primary{
-      background:linear-gradient(135deg,rgba(124,58,237,.8),rgba(167,139,250,.6));
-      border-color:rgba(167,139,250,.5);font-size:16px;padding:18px;
+      background:linear-gradient(135deg,rgba(124,58,237,.85),rgba(167,139,250,.65));
+      border-color:rgba(167,139,250,.6);font-size:16px;padding:18px;
     }
     .btn.green{
       background:linear-gradient(135deg,rgba(16,185,129,.3),rgba(52,211,153,.2));
       border-color:rgba(52,211,153,.4);
     }
-    .btn.purple{
-      background:linear-gradient(135deg,rgba(124,58,237,.3),rgba(167,139,250,.2));
-      border-color:rgba(167,139,250,.4);
+    .btn.blue{
+      background:linear-gradient(135deg,rgba(59,130,246,.3),rgba(96,165,250,.2));
+      border-color:rgba(96,165,250,.4);
     }
-    video{width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.1);
-      display:block;margin-bottom:14px;background:#000}
+    .btn.purple{
+      background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(167,139,250,.15));
+      border-color:rgba(167,139,250,.35);font-size:12px;padding:10px 14px;
+    }
+    video{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.08);
+      display:block;margin-bottom:12px;background:#000}
     .raws{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .meta{text-align:center;font-size:12px;color:rgba(255,255,255,.35);
-      margin-top:20px;line-height:1.6}
-    .badge{display:inline-block;background:rgba(167,139,250,.2);
-      border:1px solid rgba(167,139,250,.3);border-radius:999px;
-      font-size:11px;font-weight:700;padding:3px 12px;color:rgba(167,139,250,.9);
-      margin-bottom:16px}
+    .meta{text-align:center;font-size:11px;color:rgba(255,255,255,.3);
+      margin-top:20px;line-height:1.8}
   </style>
 </head>
 <body>
@@ -212,6 +212,15 @@ router.get('/download/:sessionCode', async (req, res) => {
     <div class="sub">${session.booth_name || 'Photobooth'} · ${new Date(session.created_at).toLocaleString('id-ID')}</div>
   </div>
 
+  ${motionUrl ? `
+  <div class="card">
+    <div class="card-title">🎬 Motion Video (dengan Frame)</div>
+    <video src="${motionUrl}" autoplay loop muted playsinline controls></video>
+    <a class="btn green" href="${motionUrl}" download="MEMORIBOOTH_MOTION.webm">
+      ⬇ Download Motion Video
+    </a>
+  </div>` : ''}
+
   ${finalUrl ? `
   <div class="card">
     <div class="card-title">📸 Foto Final (dengan Frame)</div>
@@ -221,23 +230,14 @@ router.get('/download/:sessionCode', async (req, res) => {
     </a>
   </div>` : ''}
 
-  ${motionUrl ? `
-  <div class="card">
-    <div class="card-title">🎬 Motion Video</div>
-    <video src="${motionUrl}" autoplay loop muted playsinline controls></video>
-    <a class="btn green" href="${motionUrl}" download="MEMORIBOOTH_MOTION.webm">
-      ⬇ Download Motion Video
-    </a>
-  </div>` : ''}
-
   ${rawPhotos.length > 0 ? `
   <div class="card">
     <div class="card-title">🖼 Foto RAW (tanpa frame) — ${rawPhotos.length} foto</div>
     <div class="raws">
       ${rawPhotos.map((p, i) => `
         <div>
-          <img src="${baseUrl}/api/photos/${p.filename}" class="preview" alt="RAW ${i+1}" style="margin-bottom:8px"/>
-          <a class="btn purple" href="${baseUrl}/api/photos/${p.filename}" download="RAW_${i+1}.jpg" style="font-size:12px;padding:10px">
+          <img src="${baseUrl}/api/photos/${p.filename}" class="preview" alt="RAW ${i+1}" style="margin-bottom:6px"/>
+          <a class="btn purple" href="${baseUrl}/api/photos/${p.filename}" download="RAW_${i+1}.jpg">
             ⬇ RAW ${i+1}
           </a>
         </div>`).join('')}
@@ -246,7 +246,7 @@ router.get('/download/:sessionCode', async (req, res) => {
 
   <div class="meta">
     Kode sesi: <b>${req.params.sessionCode}</b><br>
-    ${photos.length} file tersedia · Diunduh ${session.guest_downloaded} kali<br>
+    ${photos.length} file · Diunduh ${session.guest_downloaded} kali<br>
     MEMORIBOOTH Server v1.0
   </div>
 </div>
