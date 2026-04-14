@@ -122,11 +122,22 @@ export default function Gallery() {
                   style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.15s', boxShadow: 'var(--shadow)' }}
                   onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,58,237,0.15)'}
                   onMouseLeave={e => e.currentTarget.style.boxShadow = 'var(--shadow)'}>
-                  <div style={{ height: 120, background: colors[i % colors.length], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                      <circle cx="12" cy="13" r="4"/>
-                    </svg>
+                  <div style={{ height: 180, background: colors[i % colors.length], overflow: 'hidden', position: 'relative' }}>
+                    {s.final_photo ? (
+                      <img
+                        src={`/api/photos/${s.final_photo}`}
+                        alt={s.session_code}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        onError={e => { e.target.style.display = 'none' }}
+                      />
+                    ) : (
+                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                          <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', color: 'var(--accent)', marginBottom: 2 }}>{s.session_code}</div>
