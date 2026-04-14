@@ -78,7 +78,8 @@ router.get('/', authMiddleware, (req, res) => {
 
   const sessions = db.prepare(`
     SELECT s.*, b.name AS booth_name, f.name AS frame_name,
-      (SELECT COUNT(*) FROM photos p WHERE p.session_id = s.id) AS photo_count
+      (SELECT COUNT(*) FROM photos p WHERE p.session_id = s.id) AS photo_count,
+      (SELECT p.filename FROM photos p WHERE p.session_id = s.id AND p.filename LIKE 'FINAL_%' LIMIT 1) AS final_photo
     FROM sessions s
     LEFT JOIN booths b ON b.id = s.booth_id
     LEFT JOIN frames f ON f.id = s.frame_id
