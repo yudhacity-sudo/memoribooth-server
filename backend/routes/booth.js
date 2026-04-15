@@ -261,6 +261,52 @@ router.get('/download/:sessionCode', async (req, res) => {
   }
 });
 
+// POST /api/booth/upload-multipart — upload foto via multipart form (lebih efisien dari JSON base64)
+router.post('/upload-multipart', boothToken, _upload.fields([
+  { name: 'finalFile', maxCount: 1 },
+  { name: 'rawFiles', maxCount: 10 }
+]), async (req, res) => {
+  try {
+    const sid      = req.body.sid;
+    const metadata = JSON.parse(req.body.metadata || '{}');
+    if (!sid) return res.status(400).json({ ok: false, error: 'sid wajib diisi' });
+
+    const files = req.files;
+    if (!files?.finalFile?.[0]) return res.status(400).json({ ok: false, error: 'finalFile tidak ada' });
+
+    const finalFile = files.finalFile[0];
+    const rawFiles  = files.rawFiles || [];
+
+    // Cari atau buat session di DB
+    let session = db.prepare('SELECT * FROM sessions WHERE session_code = ?').get(sid);
+    if (!session) {
+      const booth = db.prepare('SELECT * FROM booths WHERE booth_id = ?').get(metadata.boothId || 'booth_1');
+      const boothId = booth?.id || 1;
+      db.prepare(`INSERT OR IGNORE INTO sessions (session_code, booth_id, guest_name, event_name, created_at)
+        VALUES (?, ?, ?, ?, ?)`).run(sid, boothId, metadata.guestName || '', metadata.eventName || '',
+        new Date(metadata.createdAt || Date.now()).toISOString());
+      session = db.prepare('SELECT * FROM sessions WHERE session_code = ?').get(sid);
+    }
+
+    // Insert foto ke DB
+    const insertPhoto = db.prepare('INSERT OR IGNORE INTO photos (session_id, filename, filepath, filesize) VALUES (?, ?, ?, ?)');
+    const relFinal = path.relative(UPLOAD_DIR, finalFile.path);
+    insertPhoto.run(session.id, finalFile.originalname, relFinal, finalFile.size);
+
+    for (const raw of rawFiles) {
+      const relRaw = path.relative(UPLOAD_DIR, raw.path);
+      insertPhoto.run(session.id, raw.originalname, relRaw, raw.size);
+    }
+
+    const downloadUrl = `${req.protocol}://${req.get('host')}/api/booth/download/${sid}`;
+    console.log(`[BOOTH] Multipart upload OK: ${sid}`);
+    res.json({ ok: true, sid, downloadUrl });
+  } catch (e) {
+    console.error('[BOOTH] upload-multipart error:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // POST /api/booth/update-motion — update motion video dengan versi rendered (full strip + frame)
 router.post('/update-motion', boothToken, async (req, res) => {
   try {
