@@ -2,25 +2,26 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-
-require('./db/database'); // init DB on start
+require('./db/database');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
+
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// FIX: tambah limit 50mb untuk handle foto photobooth
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded photos
 app.use('/api/photos', (req, res, next) => {
   const filename = path.basename(req.path);
-  // Search in uploads recursively
   const find = (dir) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const e of entries) {
